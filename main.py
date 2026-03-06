@@ -1,13 +1,19 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import pipeline
+import requests
+import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
-classifier = pipeline(
-    "sentiment-analysis",
-    model="w11wo/indonesian-roberta-base-sentiment-classifier"
-)
+load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+API_URL = "https://router.huggingface.co/hf-inference/models/w11wo/indonesian-roberta-base-sentiment-classifier"
+
+headers = {
+    "Authorization": f"Bearer {HF_TOKEN}"
+}
 
 class RequestBody(BaseModel):
     text: str
@@ -18,9 +24,12 @@ def root():
 
 @app.post("/predict")
 def predict(body: RequestBody):
-    result = classifier(body.text)
+    response = requests.post(
+        API_URL,
+        headers=headers,
+        json={"inputs": body.text}
+    )
 
-    return {
-        "sentiment": result[0]["label"],
-        "score": result[0]["score"]
-    }
+    result = response.json()
+
+    return result
